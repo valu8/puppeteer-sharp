@@ -449,17 +449,25 @@ namespace PuppeteerSharp.Cdp
                 ? await _frameManager.GetFrameAsync(e.FrameId).ConfigureAwait(false)
                 : null;
 
-            var request = new CdpHttpRequest(
-                    client,
-                    frame,
-                    e.RequestId,
-                    _userRequestInterceptionEnabled,
-                    e,
-                    [],
-                    _loggerFactory);
+            try
+            {
+                var request = new CdpHttpRequest(
+                        client,
+                        frame,
+                        e.RequestId,
+                        _userRequestInterceptionEnabled,
+                        e,
+                        [],
+                        _loggerFactory);
 
-            Request?.Invoke(this, new RequestEventArgs(request));
-            _ = request.FinalizeInterceptionsAsync();
+                Request?.Invoke(this, new RequestEventArgs(request));
+                _ = request.FinalizeInterceptionsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to FinalizeInterceptionsAsync");
+                Console.WriteLine("ERRRRROR: " + ex);
+            }
         }
 
         private async Task OnRequestAsync(CDPSession client, RequestWillBeSentResponse e, string fetchRequestId)

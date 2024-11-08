@@ -33,26 +33,33 @@ public class CdpHttpRequest : Request<CdpHttpResponse>
         List<IRequest> redirectChain,
         ILoggerFactory loggerFactory)
     {
-        _client = client;
-        _logger = loggerFactory.CreateLogger<CdpHttpRequest>();
-        Id = data.RequestId;
-        IsNavigationRequest = data.RequestId == data.LoaderId && data.Type == ResourceType.Document;
-        InterceptionId = interceptionId;
-        _allowInterception = allowInterception;
-        Url = data.Request.Url;
-        ResourceType = data.Type ?? ResourceType.Other;
-        Method = data.Request.Method;
-        PostData = data.Request.PostData?.ToString();
-        HasPostData = data.Request.HasPostData ?? false;
-
-        Frame = frame;
-        RedirectChainList = redirectChain;
-        Initiator = data.Initiator;
-
-        Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var keyValue in data.Request.Headers)
+        try
         {
-            Headers[keyValue.Key] = keyValue.Value;
+            _client = client;
+            _logger = loggerFactory.CreateLogger<CdpHttpRequest>();
+            Id = data.RequestId;
+            IsNavigationRequest = data.RequestId == data.LoaderId && data.Type == ResourceType.Document;
+            InterceptionId = interceptionId;
+            _allowInterception = allowInterception;
+            Url = data.Request.Url;
+            ResourceType = data.Type ?? ResourceType.Other;
+            Method = data.Request.Method;
+            PostData = data.Request.PostData?.ToString();
+            HasPostData = data.Request.HasPostData ?? false;
+
+            Frame = frame;
+            RedirectChainList = redirectChain;
+            Initiator = data.Initiator;
+
+            Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var keyValue in data.Request.Headers)
+            {
+                Headers[keyValue.Key] = keyValue.Value;
+            }
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Cannot read invalid UTF-16"))
+        {
+            Console.WriteLine("Caught invalid UTF-16 character in request data: " + ex);
         }
     }
 
@@ -219,7 +226,9 @@ public class CdpHttpRequest : Request<CdpHttpResponse>
 
         if (IsInterceptResolutionHandled)
         {
-            throw new PuppeteerException("Request is already handled!");
+            return;
+
+            // throw new PuppeteerException("Request is already handled!");
         }
 
         if (priority is null)
